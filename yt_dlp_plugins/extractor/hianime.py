@@ -153,7 +153,7 @@ class HiAnimeIE(InfoExtractor):
         formats = []
         subtitles = {}
 
-        for server_type in ['sub', 'dub', 'raw']:
+        for server_type in ['raw', 'sub']:
             # 1. Initial element fetching
             server_items_from_func = self._get_elements_by_tag_and_attrib(
                 servers_data['html'], tag='div', attribute='data-type', value=server_type, escape_value=False
