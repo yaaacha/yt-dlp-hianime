@@ -13,7 +13,36 @@ from megacloud import Megacloud
 class HiAnimeIE(InfoExtractor):
     _VALID_URL = r'https?://hianime(?:z)?\.(?:to|is|nz|bz|pe|cx|gs|do)/(?:watch/)?(?P<slug>[^/?]+)(?:-\d+)?-(?P<playlist_id>\d+)(?:\?ep=(?P<episode_id>\d+))?$'
 
-    _TESTS = [
+_TESTS = [
+        {
+            'url': 'https://hianimez.to/demon-slayer-kimetsu-no-yaiba-hashira-training-arc-19107',
+            'info_dict': {
+                'id': '19107',
+                'title': 'Demon Slayer: Kimetsu no Yaiba Hashira Training Arc',
+            },
+            'playlist_count': 8,
+        },
+        {
+            'url': 'https://hianimez.to/watch/demon-slayer-kimetsu-no-yaiba-hashira-training-arc-19107?ep=124260',
+            'info_dict': {
+                'id': '124260',
+                'title': 'To Defeat Muzan Kibutsuji',
+                'ext': 'mp4',
+                'series': 'Demon Slayer: Kimetsu no Yaiba Hashira Training Arc',
+                'series_id': '19107',
+                'episode': 'To Defeat Muzan Kibutsuji',
+                'episode_number': 1,
+                'episode_id': '124260',
+            },
+        },
+        {
+            'url': 'https://hianimez.to/the-eminence-in-shadow-17473',
+            'info_dict': {
+                'id': '17473',
+                'title': 'The Eminence in Shadow',
+            },
+            'playlist_count': 20,
+        },
         {
             'url': 'https://hianimez.to/watch/the-eminence-in-shadow-17473?ep=94440',
             'info_dict': {
@@ -239,3 +268,4 @@ class HiAnimeIE(InfoExtractor):
             (?P<content>.*?)
             </{tag}>
         ''', html))
+
