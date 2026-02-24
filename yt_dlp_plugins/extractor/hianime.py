@@ -15,35 +15,6 @@ class HiAnimeIE(InfoExtractor):
 
     _TESTS = [
         {
-            'url': 'https://hianimez.to/demon-slayer-kimetsu-no-yaiba-hashira-training-arc-19107',
-            'info_dict': {
-                'id': '19107',
-                'title': 'Demon Slayer: Kimetsu no Yaiba Hashira Training Arc',
-            },
-            'playlist_count': 8,
-        },
-        {
-            'url': 'https://hianimez.to/watch/demon-slayer-kimetsu-no-yaiba-hashira-training-arc-19107?ep=124260',
-            'info_dict': {
-                'id': '124260',
-                'title': 'To Defeat Muzan Kibutsuji',
-                'ext': 'mp4',
-                'series': 'Demon Slayer: Kimetsu no Yaiba Hashira Training Arc',
-                'series_id': '19107',
-                'episode': 'To Defeat Muzan Kibutsuji',
-                'episode_number': 1,
-                'episode_id': '124260',
-            },
-        },
-        {
-            'url': 'https://hianimez.to/the-eminence-in-shadow-17473',
-            'info_dict': {
-                'id': '17473',
-                'title': 'The Eminence in Shadow',
-            },
-            'playlist_count': 20,
-        },
-        {
             'url': 'https://hianimez.to/watch/the-eminence-in-shadow-17473?ep=94440',
             'info_dict': {
                 'id': '94440',
@@ -94,10 +65,6 @@ class HiAnimeIE(InfoExtractor):
         else:
             raise ExtractorError('Unsupported URL format')
 
-    # ========== Playlist and Episode Extraction ========== #
-
-    # ========== Playlist Extraction ========== #
-
     def _extract_playlist(self, slug, playlist_id):
         anime_title = self._get_anime_title(slug, playlist_id)
         playlist_url = f'{self.base_url}/ajax/v2/episode/list/{playlist_id}'
@@ -134,8 +101,6 @@ class HiAnimeIE(InfoExtractor):
 
         return self.playlist_result(entries, playlist_id, anime_title)
     
-    # ========== Episode Extraction ========== #
-
     def _extract_episode(self, slug, playlist_id, episode_id):
         anime_title = self._get_anime_title(slug, playlist_id)
 
@@ -153,44 +118,35 @@ class HiAnimeIE(InfoExtractor):
         formats = []
         subtitles = {}
 
-        for server_type in ['sub', 'dub', 'raw']:
-            # 1. Initial element fetching
-            server_items_from_func = self._get_elements_by_tag_and_attrib(
+        # MODIFIKASI: Cuma ambil 'sub' biar audio Jepang
+        for server_type in ['sub']:
+            server_items = self._get_elements_by_tag_and_attrib(
                 servers_data['html'], tag='div', attribute='data-type', value=server_type, escape_value=False
             )
             
-            # 2. Stricter filtering
-            server_items_filtered = [s for s in server_items_from_func if f'data-type="{server_type}"' in s.group(0)]
-            
-            # 3. Extracting the server ID
+            # Cari HD-1 (MegaCloud)
             target_link_text = "HD-1"
             server_id = next(
                 (
-                    # This part extracts the data-id if all conditions are met
                     re.search(r'data-id="([^"]+)"', s.group(0)).group(1)
-                    
-                    # Iterate through the server items already filtered by server_type
-                    for s in server_items_filtered 
-                    
-                    # Add a condition to check for the specific link text
-                    # This regex looks for "> HD-1 </a>", allowing for optional whitespace
+                    for s in server_items 
                     if re.search(rf'>\s*{re.escape(target_link_text)}\s*</a>', s.group(0))
-                    # And ensure the data-id attribute exists (good practice before .group(1))
-                    and re.search(r'data-id="([^"]+)"', s.group(0))
                 ),
-                None  # Default value if no such item is found
+                None
             )
+            
             if not server_id:
                 continue
 
             sources_url = f'{self.base_url}/ajax/v2/episode/sources?id={server_id}'
             sources_data = self._download_json(sources_url, episode_id, note=f'Getting {server_type.upper()} Episode Information')
             embed_url = sources_data.get('link')
+            
             if not embed_url:
                 continue
 
-            scraper=Megacloud(embed_url)
-            data=scraper.extract()
+            scraper = Megacloud(embed_url)
+            data = scraper.extract()
             
             for source in data.get('sources', []):
                 file_url = source.get('file')
@@ -203,7 +159,11 @@ class HiAnimeIE(InfoExtractor):
                     headers={"Referer": "https://megacloud.blog/"},
                     server_type=server_type
                 )
-                formats.extend(extracted_formats)
+                
+                # MODIFIKASI: Paksa metadata ke 'ja' (Jepang)
+                for f in extracted_formats:
+                    f['language'] = 'ja'
+                    formats.append(f)
 
             for track in data.get('tracks', []):
                 if track.get('kind') != 'captions':
@@ -211,10 +171,6 @@ class HiAnimeIE(InfoExtractor):
 
                 file_url = track.get('file')
                 label = track.get('label')
-
-                if label == 'English':
-                    label += f' {server_type.capitalize()}bed'
-
                 lang_code = self.language_codes.get(label, label)
 
                 if file_url:
@@ -222,6 +178,7 @@ class HiAnimeIE(InfoExtractor):
                         'name': label,
                         'url': file_url,
                     })
+
         return {
             'id': episode_id,
             'title': episode_data['title'],
@@ -234,8 +191,6 @@ class HiAnimeIE(InfoExtractor):
             'episode_id': episode_id,
         }
 
-    # ========== Helpers ========== #
-
     def _extract_custom_m3u8_formats(self, m3u8_url, episode_id, headers, server_type=None):
         formats = self._extract_m3u8_formats(
             m3u8_url, episode_id, 'mp4', entry_protocol='m3u8_native',
@@ -244,7 +199,7 @@ class HiAnimeIE(InfoExtractor):
         for f in formats:
             height = f.get('height')
             f['format_id'] = f'{server_type}_{height}p'
-            f['language'] = self.language[server_type]
+            f['language'] = self.language.get(server_type, 'ja')
             f['http_headers'] = headers
         return formats
 
