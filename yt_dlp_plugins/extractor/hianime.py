@@ -13,7 +13,7 @@ from megacloud import Megacloud
 class HiAnimeIE(InfoExtractor):
     _VALID_URL = r'https?://hianime(?:z)?\.(?:to|is|nz|bz|pe|cx|gs|do)/(?:watch/)?(?P<slug>[^/?]+)(?:-\d+)?-(?P<playlist_id>\d+)(?:\?ep=(?P<episode_id>\d+))?$'
 
-_TESTS = [
+    _TESTS = [
         {
             'url': 'https://hianimez.to/demon-slayer-kimetsu-no-yaiba-hashira-training-arc-19107',
             'info_dict': {
@@ -93,8 +93,8 @@ _TESTS = [
             return self._extract_playlist(slug, playlist_id)
         else:
             raise ExtractorError('Unsupported URL format')
- 
- # ========== Playlist and Episode Extraction ========== #
+
+    # ========== Playlist and Episode Extraction ========== #
 
     # ========== Playlist Extraction ========== #
 
@@ -133,9 +133,9 @@ _TESTS = [
             ))
 
         return self.playlist_result(entries, playlist_id, anime_title)
-    
+
     # ========== Episode Extraction ========== #
-    
+
     def _extract_episode(self, slug, playlist_id, episode_id):
         anime_title = self._get_anime_title(slug, playlist_id)
 
@@ -158,7 +158,7 @@ _TESTS = [
             server_items = self._get_elements_by_tag_and_attrib(
                 servers_data['html'], tag='div', attribute='data-type', value=server_type, escape_value=False
             )
-            
+
             # Cari HD-1 (MegaCloud)
             target_link_text = "HD-1"
             server_id = next(
@@ -169,20 +169,20 @@ _TESTS = [
                 ),
                 None
             )
-            
+
             if not server_id:
                 continue
 
             sources_url = f'{self.base_url}/ajax/v2/episode/sources?id={server_id}'
             sources_data = self._download_json(sources_url, episode_id, note=f'Getting {server_type.upper()} Episode Information')
             embed_url = sources_data.get('link')
-            
+
             if not embed_url:
                 continue
 
             scraper = Megacloud(embed_url)
             data = scraper.extract()
-            
+
             for source in data.get('sources', []):
                 file_url = source.get('file')
                 if not (file_url and file_url.endswith('.m3u8')):
@@ -194,7 +194,7 @@ _TESTS = [
                     headers={"Referer": "https://megacloud.blog/"},
                     server_type=server_type
                 )
-                
+
                 # MODIFIKASI: Paksa metadata ke 'ja' (Jepang)
                 for f in extracted_formats:
                     f['language'] = 'ja'
@@ -225,10 +225,16 @@ _TESTS = [
             'episode_number': episode_data['number'],
             'episode_id': episode_id,
         }
-        
-  # ========== Helpers ========== #
+
+    # ========== Helpers ========== #
 
     def _extract_custom_m3u8_formats(self, m3u8_url, episode_id, headers, server_type=None):
+        headers.update({
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+            "Referer": "https://megacloud.blog/",
+            "Origin": "https://megacloud.blog"
+        })
+
         formats = self._extract_m3u8_formats(
             m3u8_url, episode_id, 'mp4', entry_protocol='m3u8_native',
             note='Downloading M3U8 Information', headers=headers
@@ -268,4 +274,3 @@ _TESTS = [
             (?P<content>.*?)
             </{tag}>
         ''', html))
-
