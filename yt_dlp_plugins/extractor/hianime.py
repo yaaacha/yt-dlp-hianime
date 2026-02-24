@@ -64,6 +64,10 @@ class HiAnimeIE(InfoExtractor):
             return self._extract_playlist(slug, playlist_id)
         else:
             raise ExtractorError('Unsupported URL format')
+ 
+ # ========== Playlist and Episode Extraction ========== #
+
+    # ========== Playlist Extraction ========== #
 
     def _extract_playlist(self, slug, playlist_id):
         anime_title = self._get_anime_title(slug, playlist_id)
@@ -100,6 +104,8 @@ class HiAnimeIE(InfoExtractor):
             ))
 
         return self.playlist_result(entries, playlist_id, anime_title)
+    
+    # ========== Episode Extraction ========== #
     
     def _extract_episode(self, slug, playlist_id, episode_id):
         anime_title = self._get_anime_title(slug, playlist_id)
@@ -190,6 +196,8 @@ class HiAnimeIE(InfoExtractor):
             'episode_number': episode_data['number'],
             'episode_id': episode_id,
         }
+        
+  # ========== Helpers ========== #
 
     def _extract_custom_m3u8_formats(self, m3u8_url, episode_id, headers, server_type=None):
         formats = self._extract_m3u8_formats(
